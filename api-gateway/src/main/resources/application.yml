@@ -1,0 +1,93 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+  #  FIX #2: Exclude Spring Security auto-config in the Gateway.
+  # The oauth2-client / security starter on classpath auto-registers its own
+  # CorsFilter. That filter fires AFTER Gateway's globalcors and stamps a
+  # second Access-Control-Allow-Origin header → browser sees 5 duplicates.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
+
+  cloud:
+    gateway:
+      # ✅ FIX #1: CORS in ONE place only — the Gateway.
+      globalcors:
+        add-to-simple-url-handler-mapping: true   # Required: handles OPTIONS preflight
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "https://quantitymeasurementapp-frontend-m8ll.onrender.com"
+              - "http://localhost:5173"
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      routes:
+        # Auth routes — PUBLIC (no JWT filter)
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**
+
+        # QMA routes — PROTECTED (JWT filter applied)
+        - id: qma-service
+          uri: ${QMA_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/**
+          filters:
+            - name: JwtAuthFilter
+
+        # Swagger docs passthrough
+        - id: qma-swagger-docs
+          uri: ${QMA_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/v3/api-docs,/v3/api-docs/**
+          filters:
+            - StripPrefix=0
+
+        # Swagger UI passthrough
+        - id: qma-swagger-ui
+          uri: ${QMA_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/swagger-ui.html,/swagger-ui/**
+          filters:
+            - StripPrefix=0
+
+      default-filters:
+        - PreserveHostHeader
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: false
+    hostname: ${RENDER_EXTERNAL_HOSTNAME:localhost}
+
+jwt:
+  secret: ${JWT_SECRET:QMASecretKey2024QMASecretKey2024QM}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
