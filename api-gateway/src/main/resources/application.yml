@@ -5,7 +5,7 @@ spring:
   application:
     name: api-gateway
 
-  #  FIX #2: Exclude Spring Security auto-config in the Gateway.
+  # ✅ FIX #2: Exclude Spring Security auto-config in the Gateway.
   # The oauth2-client / security starter on classpath auto-registers its own
   # CorsFilter. That filter fires AFTER Gateway's globalcors and stamps a
   # second Access-Control-Allow-Origin header → browser sees 5 duplicates.
@@ -22,7 +22,7 @@ spring:
         cors-configurations:
           '[/**]':
             allowedOrigins:
-              - "https://quantitymeasurementapp-frontend-m8ll.onrender.com"
+#              - "https://quantitymeasurementapp-frontend-m8ll.onrender.com"
               - "http://localhost:5173"
               - "http://localhost:3000"
             allowedMethods:
